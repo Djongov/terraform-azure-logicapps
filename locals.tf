@@ -135,11 +135,14 @@ locals {
   }
 
   logic_apps_with_definitions = {
-    for app_name, app in var.logic_apps : app_name => {
+    for app_name, app in var.logic_apps :
+    app_name => {
       api_connection  = app.api_connection
       full_definition = jsondecode(file(app.file))
     }
+    if app.file != null && app.file != ""
   }
+
 
   # Triggers
   logic_app_triggers = {

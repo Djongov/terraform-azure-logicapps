@@ -47,9 +47,9 @@ variable "logic_apps" {
   type = map(object({
     enabled = optional(bool)
     #triggers = map(any)
-    file = string
+    file = optional(string)
     api_connection = optional(object({
-      managed_api = string
+      managed_api = optional(string)
       tags        = optional(map(string), {})
       parameter_values = optional(object({
         token     = optional(map(string))
