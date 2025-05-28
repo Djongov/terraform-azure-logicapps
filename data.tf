@@ -5,3 +5,8 @@
 # data "azuread_user" "current_user" {
 #     object_id = data.azurerm_client_config.current.object_id
 # }
+
+data "azurerm_managed_api" "teams" {
+  name     = "teams"
+  location = var.location
+}

@@ -1,8 +1,9 @@
 locals {
   # let's define common tags that we can use to apply to all resources
   common_tags = merge({
-    "managed-by"        = "terraform"
-    "environment"       = var.environment
+    "managed-by"  = "terraform"
+    "environment" = var.environment
+    "repo-name"   = var.repo_name
     #"last-updated-by"  = data.azuread_user.current_user.user_principal_name
     #"last_updated_at" = plantimestamp() # it is a cool idea but can be a lot of output so for now it's off
     },
@@ -129,4 +130,48 @@ locals {
 
   # We can use this to get the location abbreviation from the location name, use it to name resources
   location_abbreviation = lookup(local.location_abbreviations, var.location, "")
+  managed_apis = {
+    teams = data.azurerm_managed_api.teams
+  }
+
+  logic_apps_with_definitions = {
+    for app_name, app in var.logic_apps : app_name => {
+      api_connection  = app.api_connection
+      full_definition = jsondecode(file(app.file))
+    }
+  }
+
+  # Triggers
+  logic_app_triggers = {
+    for app_name, app in local.logic_apps_with_definitions : app_name => app.full_definition.properties.definition.triggers
+  }
+
+  logic_app_trigger_map = merge(
+    flatten([
+      for app_name, triggers in local.logic_app_triggers : [
+        for trigger_name, trigger_body in triggers : {
+          "${app_name}.${trigger_name}" = {
+            app_name     = app_name
+            trigger_name = trigger_name
+            content      = trigger_body
+          }
+        }
+      ]
+    ])
+  ...)
+  # Actions
+  logic_app_actions = {
+    for app_name, app in local.logic_apps_with_definitions : app_name => app.full_definition.properties.definition.actions
+  }
+
+  # Flatten to a map keyed by app.actionName with full content
+  logic_app_action_map = merge([
+    for app_name, actions in local.logic_app_actions : {
+      for action_name, action_body in actions : "${app_name}.${action_name}" => {
+        app_name    = app_name
+        action_name = action_name
+        content     = action_body
+      }
+    }
+  ]...)
 }
